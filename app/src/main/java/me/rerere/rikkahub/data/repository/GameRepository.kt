@@ -35,16 +35,22 @@ class GameRepository(
 
     private val mutex = Mutex()
 
+    /** 编译结果 + 它来自哪本世界书（注入项的稳定 id 要用真正的 worldbookId）。 */
+    data class CompiledWorldbook(
+        val worldbookId: String,
+        val injections: List<CompiledInjection>,
+    )
+
     /**
      * 当前存档编译好的世界书注入项。
      *
      * 一轮请求只调一次（在 ChatRequestFactory.createContext 里），不要放进 buildStep：
      * buildStep 每一步工具调用都会执行。
      */
-    suspend fun loadedCompiledInjections(sessionId: String): List<CompiledInjection> {
-        val session = sessionDao.findById(sessionId) ?: return emptyList()
-        val worldbookId = session.worldbookId?.takeIf { it.isNotBlank() } ?: return emptyList()
-        val book = worldBookDao.findById(worldbookId) ?: return emptyList()
+    suspend fun loadedCompiledInjections(sessionId: String): CompiledWorldbook? {
+        val session = sessionDao.findById(sessionId) ?: return null
+        val worldbookId = session.worldbookId?.takeIf { it.isNotBlank() } ?: return null
+        val book = worldBookDao.findById(worldbookId) ?: return null
         val rows = worldBookDao.entriesOf(worldbookId).map { entry ->
             EntryRow(
                 id = entry.id,
@@ -54,7 +60,8 @@ class GameRepository(
                 priority = entry.priority,
             )
         }
-        return compileWorldbook(WorldDoc.parse(book.docJson), rows)
+        val injections = compileWorldbook(WorldDoc.parse(book.docJson), rows)
+        return if (injections.isEmpty()) null else CompiledWorldbook(worldbookId, injections)
     }
 
     /** 会话绑定的游戏存档；普通聊天返回 null。 */
