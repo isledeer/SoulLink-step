@@ -118,6 +118,9 @@ interface ConversationDAO {
     @Query("UPDATE conversationentity SET title = :title WHERE id = :id")
     suspend fun updateTitle(id: String, title: String)
 
+    @Query("UPDATE conversationentity SET game_session_id = :gameSessionId WHERE id = :id")
+    suspend fun updateGameSessionId(id: String, gameSessionId: String?)
+
     @Query("UPDATE conversationentity SET custom_system_prompt = :customSystemPrompt WHERE id = :id")
     suspend fun updateCustomSystemPrompt(id: String, customSystemPrompt: String)
 
