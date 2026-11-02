@@ -51,35 +51,9 @@ jobs:
             ~/.gradle/wrapper
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
 
-      # fork 里没有上游的签名密钥/google-services，debug 构建需要一份占位文件
-      - name: Provide dummy google-services.json (debug only)
-        run: |
-          if [ ! -f app/google-services.json ]; then
-            cat > app/google-services.json <<'JSON'
-          {
-            "project_info": {
-              "project_number": "000000000000",
-              "project_id": "soullink-dummy",
-              "storage_bucket": "soullink-dummy.appspot.com"
-            },
-            "client": [
-              {
-                "client_info": {
-                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
-                  "android_client_info": { "package_name": "me.rerere.rikkahub" }
-                },
-                "oauth_client": [],
-                "api_key": [ { "current_key": "AIzaSyDUMMY0000000000000000000000000000" } ],
-                "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
-              }
-            ],
-            "configuration_version": "1"
-          }
-          JSON
-            echo "已写入占位 google-services.json"
-          else
-            echo "仓库已有 google-services.json，跳过"
-          fi
+      # 占位 Firebase 配置（单一事实源：ci/google-services.placeholder.json）
+      - name: Provide placeholder google-services.json
+        run: cp ci/google-services.placeholder.json app/google-services.json
 
       - name: Unit tests (game module)
         run: |
