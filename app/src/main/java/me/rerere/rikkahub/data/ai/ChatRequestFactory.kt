@@ -37,11 +37,10 @@ import me.rerere.rikkahub.data.ai.transformers.transforms
 import me.rerere.rikkahub.data.ai.transformers.visualTransforms
 import me.rerere.rikkahub.data.datastore.Settings
 import me.rerere.rikkahub.data.datastore.findProvider
-import me.rerere.rikkahub.data.game.stableInjectionId
-import me.rerere.rikkahub.data.game.toRegexInjection
+import me.rerere.rikkahub.data.game.attachWorldbook
+import me.rerere.rikkahub.data.game.buildWorldbookLorebook
 import me.rerere.rikkahub.data.model.Assistant
 import me.rerere.rikkahub.data.model.Conversation
-import me.rerere.rikkahub.data.model.Lorebook
 import me.rerere.rikkahub.data.model.MemoryFile
 import me.rerere.rikkahub.data.model.getAssistantOf
 import me.rerere.rikkahub.data.model.getChatModelOf
@@ -103,21 +102,12 @@ class ChatRequestFactory(
     suspend fun createContext(settings: Settings, conversation: Conversation): ChatTurnContext {
         // 模型、思考级别、搜索、工具等以会话上固定的配置为准
         val baseAssistant = settings.getAssistantOf(conversation)
-        // SoulLink：有存档时把世界书编译成上游 Lorebook，随 settings/assistant 一起下发
-        val soulbook = conversation.gameSessionId?.let { sessionId ->
-            gameRepository.loadedCompiledInjections(sessionId)?.let { compiled ->
-                Lorebook(
-                    id = stableInjectionId(compiled.worldbookId, "worldbook"),
-                    name = "SoulLink",
-                    description = "SoulLink 世界书：${compiled.worldbookId}",
-                    entries = compiled.injections.map { it.toRegexInjection(compiled.worldbookId) },
-                )
-            }
-        }
-        val effectiveSettings =
-            if (soulbook == null) settings else settings.copy(lorebooks = settings.lorebooks + soulbook)
-        val assistant =
-            if (soulbook == null) baseAssistant else baseAssistant.copy(lorebookIds = baseAssistant.lorebookIds + soulbook.id)
+        // SoulLink：有存档时把世界书编译成上游 Lorebook
+        val soulbook = conversation.gameSessionId
+            ?.let { gameRepository.loadedCompiledInjections(it) }
+            ?.let { buildWorldbookLorebook(it.worldbookId, it.injections) }
+        val effectiveSettings = settings.attachWorldbook(soulbook)
+        val assistant = baseAssistant.attachWorldbook(soulbook)
 
         val model = settings.getChatModelOf(conversation)
             ?: throw IllegalStateException("No chat model selected")
