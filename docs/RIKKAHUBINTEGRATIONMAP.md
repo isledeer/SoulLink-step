@@ -294,26 +294,56 @@ object GameLedgerHooks {
 
 ---
 
-## M1 施工记录（施工中）
+## M1 施工记录（已通过 CI，2026-11-02）
+
+**状态**：`SoulLink CI` run [41395191906](https://github.com/isledeer/SoulLink-step/actions/runs/41395191906) success；
+`DB Migration Test` run 41421523488 success（30 个 androidTest 全绿，含新增的 `Migration_32_33_Test`）。
 
 **仓库**：`isledeer/SoulLink-step` = `rikkahub/rikkahub` 的 fork（含全部 tag，基线 3.1.1）；
 工作分支 `soullink`（从 tag 3.1.1 切出，已设为默认分支）。
-> 注意：GitHub 不允许把公开仓库的 fork 改为私有（API 返回 `Public forks can't be made private`），
-> 本仓库目前是 **public**。旧文档仓库已改名为 `SoulLink-docs`（private）。
+> GitHub 不允许把公开仓库的 fork 改为私有（`Public forks can't be made private`），本仓库目前是 public。
 
-**已落地（本分支）**
+### 上游改动清单（真实 diff，`compare/3.1.1...soullink`）
 
-| 分类 | 文件 |
+| 文件 | 改动 |
 |---|---|
-| 纯新增 `:game` | `game/build.gradle.kts`、`GameState.kt`、`GameEvent.kt`、`GameStateOps.kt`、`GameActionParser.kt`、`Worldbook.kt`、2 个测试文件（21 个用例） |
-| 纯新增 app | `data/db/entity/GameEntity.kt`、`data/db/dao/GameDao.kt`、`data/db/migrations/Migration_32_33.kt`、`data/repository/GameRepository.kt`、`service/GameLedgerHooks.kt` |
-| 动上游（共 7 处） | `ConversationEntity` +1 列 / `Conversation` +1 字段 / `ConversationRepository` +2 行映射 / `AppDatabase` 注册 4 实体 + `version 33` / `AppDatabaseFactory` +1 迁移 / `ChatService` +1 行调用 / `RepositoryModule`+`DataSourceModule` 注入 |
-| 构建 | `settings.gradle.kts` 加 `:game`；`libs.versions.toml` 加 `kotlin-jvm` 插件与 `org.json` |
+| `app/src/main/java/.../data/db/AppDatabase.kt` | +18 / −1 |
+| `app/src/main/java/.../di/DataSourceModule.kt` | +12 |
+| `app/src/main/java/.../di/RepositoryModule.kt` | +7 |
+| `app/src/main/java/.../data/db/AppDatabaseFactory.kt` | +2 |
+| `app/src/main/java/.../data/db/entity/ConversationEntity.kt` | +2 |
+| `app/src/main/java/.../data/model/Conversation.kt` | +2 |
+| `app/src/main/java/.../data/repository/ConversationRepository.kt` | +2 |
+| `app/src/main/java/.../service/ChatService.kt` | +1 |
+| `app/build.gradle.kts` | +1 |
+| `gradle/libs.versions.toml` | +2 |
+| `settings.gradle.kts` | +1 |
+| **合计** | **11 文件 +50 / −1** |
 
-**未完成 / 待办**
+另有一处测试修正（不计入上游代码）：`app/src/androidTest/.../ExampleInstrumentedTest.kt` +2/−1，
+把写死的 `me.rerere.rikkahub` 改成 `BuildConfig.APPLICATION_ID`——debug 变体带 `.debug` 后缀，原断言必然失败。
 
-- [ ] `./gradlew :game:test` 实际执行（沙箱无 JVM，需 CI）
-- [ ] `./gradlew assembleGithubDebug`
-- [ ] `spotlessApply`（ktlint）
-- [ ] `Migration_32_33_Test`（androidTest，需真机/模拟器）
-- [ ] CI workflow（`.github/workflows/soullink-ci.yml` 已写好，但推送需要 token 具备 `workflow` scope）
+**纯新增**：`game/`（5 个源文件 + 2 个测试，共 21 个用例）、`GameEntity.kt`、`GameDao.kt`、
+`Migration_32_33.kt`、`GameRepository.kt`、`GameLedgerHooks.kt`、`Migration_32_33_Test.kt`、
+`app/schemas/…/33.json`、`ci/google-services.placeholder.json`、两个 workflow。
+
+---
+
+## DB 版本纪律（M1.5 起强制）
+
+**规则**：每次把 `AppDatabase.version` +1，必须在同一个 PR 里提交 `app/schemas/<new>.json`。
+
+**为什么**：Room 的 schema 由 KSP 在编译期生成，**只产当前版本**。
+一旦版本号继续往上走，旧版本的 schema 就再也生成不出来了——迁移测试
+（`MigrationTestHelper.createDatabase(db, oldVersion)`）依赖 `app/schemas/<old>.json` 才能建出旧库。
+历史 schema 缺失 = 迁移链断档 = 永远无法验证 `old → new`，且线上用户升级路径不可测。
+
+**执行**：
+1. 改 schema → 版本 +1 → 写显式 `Migration(old, new)` → 在 `AppDatabaseFactory.addMigrations()` 注册；
+2. 构建一次，把 KSP 产出的 `app/schemas/<new>.json` 一起提交；
+3. CI 里 `Room schema drift check` 用 `git status --porcelain -- app/schemas` 校验工作区干净
+   （用 `git status` 而不是 `git diff`：新生成的 json 是 untracked，`git diff` 看不见）；
+4. 迁移测试放 `app/src/androidTest/.../migrations/Migration_<old>_<new>_Test.kt`，
+   由 `DB Migration Test` workflow 在 API 34 模拟器上跑。
+
+**禁止**：`fallbackToDestructiveMigration()`（上游也没有用，保持这个纪律）。
