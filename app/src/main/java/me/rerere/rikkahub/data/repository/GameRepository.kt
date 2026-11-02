@@ -5,6 +5,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import me.rerere.rikkahub.data.db.dao.GameEventDao
 import me.rerere.rikkahub.data.db.dao.GameSessionDao
+import me.rerere.rikkahub.data.db.dao.WorldBookDao
 import me.rerere.rikkahub.data.db.entity.GameEventEntity
 import me.rerere.rikkahub.data.db.entity.GameSessionEntity
 import me.rerere.rikkahub.data.model.Conversation
@@ -13,6 +14,10 @@ import com.isledeer.soullink.game.GameActionEvents
 import com.isledeer.soullink.game.GameEvent
 import com.isledeer.soullink.game.GameState
 import com.isledeer.soullink.game.GameStateOps
+import com.isledeer.soullink.game.CompiledInjection
+import com.isledeer.soullink.game.EntryRow
+import com.isledeer.soullink.game.WorldDoc
+import com.isledeer.soullink.game.compileWorldbook
 
 /**
  * 账本仓库：追加事件、按当前路径派生状态。
@@ -25,9 +30,32 @@ import com.isledeer.soullink.game.GameStateOps
 class GameRepository(
     private val sessionDao: GameSessionDao,
     private val eventDao: GameEventDao,
+    private val worldBookDao: WorldBookDao,
 ) {
 
     private val mutex = Mutex()
+
+    /**
+     * 当前存档编译好的世界书注入项。
+     *
+     * 一轮请求只调一次（在 ChatRequestFactory.createContext 里），不要放进 buildStep：
+     * buildStep 每一步工具调用都会执行。
+     */
+    suspend fun loadedCompiledInjections(sessionId: String): List<CompiledInjection> {
+        val session = sessionDao.findById(sessionId) ?: return emptyList()
+        val worldbookId = session.worldbookId?.takeIf { it.isNotBlank() } ?: return emptyList()
+        val book = worldBookDao.findById(worldbookId) ?: return emptyList()
+        val rows = worldBookDao.entriesOf(worldbookId).map { entry ->
+            EntryRow(
+                id = entry.id,
+                keysJson = entry.keysJson,
+                content = entry.content,
+                alwaysOn = entry.alwaysOn,
+                priority = entry.priority,
+            )
+        }
+        return compileWorldbook(WorldDoc.parse(book.docJson), rows)
+    }
 
     /** 会话绑定的游戏存档；普通聊天返回 null。 */
     suspend fun sessionOf(conversation: Conversation): GameSessionEntity? {
