@@ -35,7 +35,7 @@ val repositoryModule = module {
 
     // SoulLink 游戏层：账本仓库，同时注入到唯一的定稿钩子
     single {
-        GameRepository(get(), get()).also { GameLedgerHooks.install(it) }
+        GameRepository(get(), get(), get()).also { GameLedgerHooks.install(it) }
     }
 
     single {
