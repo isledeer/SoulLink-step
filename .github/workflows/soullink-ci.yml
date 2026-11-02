@@ -60,6 +60,9 @@ jobs:
           chmod +x gradlew
           ./gradlew :game:test --stacktrace --console=plain
 
+      - name: Unit tests (worldbook mapper)
+        run: ./gradlew :app:testGithubDebugUnitTest --tests "me.rerere.rikkahub.data.game.*" --stacktrace --console=plain
+
       - name: Build debug APK
         run: ./gradlew assembleGithubDebug --stacktrace --console=plain
 
