@@ -3,7 +3,7 @@ package me.rerere.rikkahub.data.game
 import com.isledeer.soullink.game.CompiledInjection
 import me.rerere.rikkahub.data.model.Assistant
 import me.rerere.rikkahub.data.model.Lorebook
-import me.rerere.rikkahub.data.model.Settings
+import me.rerere.rikkahub.data.datastore.Settings
 
 /**
  * 编译结果 → 上游 `Lorebook`。空结果返回 null，调用方据此走"未绑定"分支。
