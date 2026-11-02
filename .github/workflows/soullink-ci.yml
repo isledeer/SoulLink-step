@@ -63,6 +63,22 @@ jobs:
       - name: Build debug APK
         run: ./gradlew assembleGithubDebug --stacktrace --console=plain
 
+      # T2：KSP 只生成当前版本的 schema，必须入库，否则迁移链断档
+      - name: Room schema drift check
+        run: |
+          if [ -n "$(git status --porcelain -- app/schemas)" ]; then
+            echo "❌ schema 有未提交变更："
+            git status --porcelain -- app/schemas
+            exit 1
+          fi
+
+      - name: Upload Room schemas
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: room-schemas
+          path: app/schemas
+
       - name: Extract Kotlin errors
         if: always()
         run: |
