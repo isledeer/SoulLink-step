@@ -27,6 +27,29 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: SoulLink sentinel (上游挂钩不得丢失)
+        run: |
+          set -e
+          check() {
+            grep -qF "$2" "$1" || {
+              echo "❌ 挂钩丢失：$3"
+              echo "   文件：$1"
+              echo "   找不到：$2"
+              exit 1
+            }
+          }
+          check app/src/main/java/me/rerere/rikkahub/service/ChatService.kt \
+                "GameLedgerHooks.onTurnFinished" "M1 回合结束钩子"
+          check app/src/main/java/me/rerere/rikkahub/data/repository/ConversationRepository.kt \
+                "gameSessionId = conversation.gameSessionId" "gameSessionId 写入映射"
+          check app/src/main/java/me/rerere/rikkahub/data/repository/ConversationRepository.kt \
+                "gameSessionId = conversationEntity.gameSessionId" "gameSessionId 读取映射"
+          check app/src/main/java/me/rerere/rikkahub/data/ai/ChatRequestFactory.kt \
+                "loadedCompiledInjections" "世界书接线"
+          check app/src/main/java/me/rerere/rikkahub/data/ai/ChatRequestFactory.kt \
+                "attachWorldbook" "世界书挂载"
+          echo "✅ 5 个挂钩全在"
+
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
         with:
