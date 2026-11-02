@@ -7,11 +7,11 @@ import androidx.room.TypeConverter
 import androidx.room.TypeConverters
 import me.rerere.ai.core.TokenUsage
 import me.rerere.rikkahub.data.db.dao.ConversationDAO
-import me.rerere.rikkahub.data.db.dao.FavoriteDAO
-import me.rerere.rikkahub.data.db.dao.FolderDAO
-import me.rerere.rikkahub.data.db.dao.WorldBookDao
 import me.rerere.rikkahub.data.db.dao.GameEventDao
 import me.rerere.rikkahub.data.db.dao.GameSessionDao
+import me.rerere.rikkahub.data.db.dao.WorldBookDao
+import me.rerere.rikkahub.data.db.dao.FavoriteDAO
+import me.rerere.rikkahub.data.db.dao.FolderDAO
 import me.rerere.rikkahub.data.db.dao.GenMediaDAO
 import me.rerere.rikkahub.data.db.dao.ManagedFileDAO
 import me.rerere.rikkahub.data.db.dao.MediaCreationDAO
@@ -24,6 +24,8 @@ import me.rerere.rikkahub.data.db.dao.WorkspaceDAO
 import me.rerere.rikkahub.data.db.entity.ConversationEntity
 import me.rerere.rikkahub.data.db.entity.FavoriteEntity
 import me.rerere.rikkahub.data.db.entity.FolderEntity
+import me.rerere.rikkahub.data.db.entity.GameEventEntity
+import me.rerere.rikkahub.data.db.entity.GameSessionEntity
 import me.rerere.rikkahub.data.db.entity.GenMediaEntity
 import me.rerere.rikkahub.data.db.entity.ManagedFileEntity
 import me.rerere.rikkahub.data.db.entity.MediaCreationNodeEntity
@@ -34,6 +36,8 @@ import me.rerere.rikkahub.data.db.entity.MemoryFileEntity
 import me.rerere.rikkahub.data.db.entity.MessageNodeEntity
 import me.rerere.rikkahub.data.db.entity.TranslationHistoryEntity
 import me.rerere.rikkahub.data.db.entity.UsageRecordEntity
+import me.rerere.rikkahub.data.db.entity.WorldBookEntity
+import me.rerere.rikkahub.data.db.entity.WorldEntryEntity
 import me.rerere.rikkahub.data.db.entity.WorkspaceEntity
 import me.rerere.rikkahub.data.db.migrations.Migration_16_17
 import me.rerere.rikkahub.data.db.migrations.Migration_22_23
@@ -57,8 +61,12 @@ import me.rerere.rikkahub.utils.JsonInstant
         MediaCreationRecordEntity::class,
         TranslationHistoryEntity::class,
         UsageRecordEntity::class,
+        GameSessionEntity::class,
+        GameEventEntity::class,
+        WorldBookEntity::class,
+        WorldEntryEntity::class,
     ],
-    version = 32,
+    version = 33,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
         AutoMigration(from = 2, to = 3),
