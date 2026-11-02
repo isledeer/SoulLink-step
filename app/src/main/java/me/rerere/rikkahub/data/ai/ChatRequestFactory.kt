@@ -37,11 +37,15 @@ import me.rerere.rikkahub.data.ai.transformers.transforms
 import me.rerere.rikkahub.data.ai.transformers.visualTransforms
 import me.rerere.rikkahub.data.datastore.Settings
 import me.rerere.rikkahub.data.datastore.findProvider
+import me.rerere.rikkahub.data.game.stableInjectionId
+import me.rerere.rikkahub.data.game.toRegexInjection
 import me.rerere.rikkahub.data.model.Assistant
 import me.rerere.rikkahub.data.model.Conversation
+import me.rerere.rikkahub.data.model.Lorebook
 import me.rerere.rikkahub.data.model.MemoryFile
 import me.rerere.rikkahub.data.model.getAssistantOf
 import me.rerere.rikkahub.data.model.getChatModelOf
+import me.rerere.rikkahub.data.repository.GameRepository
 import me.rerere.rikkahub.data.repository.MemoryRepository
 import me.rerere.rikkahub.data.repository.WorkspaceRepository
 import me.rerere.rikkahub.data.repository.memoryId
@@ -77,6 +81,7 @@ class ChatRequestFactory(
     private val memoryRepository: MemoryRepository,
     templateTransformer: TemplateTransformer,
     workspaceRepository: WorkspaceRepository,
+    private val gameRepository: GameRepository,
 ) {
     private val inputTransformers: List<InputMessageTransformer> = listOf(
         TimeReminderTransformer,
@@ -97,12 +102,30 @@ class ChatRequestFactory(
     /** 解析本轮的助手、模型、记忆和工具；MCP 服务名不合法时抛出 InvalidMcpServerNamesException */
     suspend fun createContext(settings: Settings, conversation: Conversation): ChatTurnContext {
         // 模型、思考级别、搜索、工具等以会话上固定的配置为准
-        val assistant = settings.getAssistantOf(conversation)
-        val model = settings.getChatModelOf(conversation)
+        val baseAssistant = settings.getAssistantOf(conversation)
+        // SoulLink：有存档时把世界书编译成上游 Lorebook，随 settings/assistant 一起下发
+        val soulbook = conversation.gameSessionId?.let { sessionId ->
+            gameRepository.loadedCompiledInjections(sessionId)
+                .takeIf { it.isNotEmpty() }
+                ?.let { compiled ->
+                    Lorebook(
+                        id = stableInjectionId(sessionId, "worldbook"),
+                        name = "SoulLink",
+                        description = "SoulLink 世界书：$sessionId",
+                        entries = compiled.map { it.toRegexInjection(sessionId) },
+                    )
+                }
+        }
+        val effectiveSettings =
+            if (soulbook == null) settings else settings.copy(lorebooks = settings.lorebooks + soulbook)
+        val assistant =
+            if (soulbook == null) baseAssistant else baseAssistant.copy(lorebookIds = baseAssistant.lorebookIds + soulbook.id)
+
+        val model = effectiveSettings.getChatModelOf(conversation)
             ?: throw IllegalStateException("No chat model selected")
-        val provider = model.findProvider(settings.providers) ?: error("Provider not found")
+        val provider = model.findProvider(effectiveSettings.providers) ?: error("Provider not found")
         return ChatTurnContext(
-            settings = settings,
+            settings = effectiveSettings,
             assistant = assistant,
             model = model,
             providerSetting = provider,
@@ -111,7 +134,7 @@ class ChatRequestFactory(
             workspaceCwd = conversation.workspaceCwd,
             memories = if (assistant.enableMemory) memoryRepository.getFiles(assistant.memoryId) else emptyList(),
             tools = chatToolFactory.createTools(
-                settings = settings,
+                settings = effectiveSettings,
                 assistant = assistant,
                 model = model,
                 workspaceCwd = conversation.workspaceCwd,
