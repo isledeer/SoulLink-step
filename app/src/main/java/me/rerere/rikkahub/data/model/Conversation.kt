@@ -36,6 +36,8 @@ data class Conversation(
     val workspaceCwd: String? = null,
     // 所属文件夹（助手内分组），null 表示未归入任何文件夹
     val folderId: Uuid? = null,
+    // SoulLink：绑定的游戏存档，null 表示普通聊天
+    val gameSessionId: String? = null,
     @Transient
     val newConversation: Boolean = false
 ) {
