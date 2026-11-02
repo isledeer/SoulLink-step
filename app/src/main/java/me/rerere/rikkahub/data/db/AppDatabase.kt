@@ -9,6 +9,9 @@ import me.rerere.ai.core.TokenUsage
 import me.rerere.rikkahub.data.db.dao.ConversationDAO
 import me.rerere.rikkahub.data.db.dao.FavoriteDAO
 import me.rerere.rikkahub.data.db.dao.FolderDAO
+import me.rerere.rikkahub.data.db.dao.WorldBookDao
+import me.rerere.rikkahub.data.db.dao.GameEventDao
+import me.rerere.rikkahub.data.db.dao.GameSessionDao
 import me.rerere.rikkahub.data.db.dao.GenMediaDAO
 import me.rerere.rikkahub.data.db.dao.ManagedFileDAO
 import me.rerere.rikkahub.data.db.dao.MediaCreationDAO
@@ -108,6 +111,12 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun translationHistoryDao(): TranslationHistoryDAO
 
     abstract fun usageRecordDao(): UsageRecordDAO
+
+    abstract fun gameSessionDao(): GameSessionDao
+
+    abstract fun gameEventDao(): GameEventDao
+
+    abstract fun worldBookDao(): WorldBookDao
 }
 
 object TokenUsageConverter {
