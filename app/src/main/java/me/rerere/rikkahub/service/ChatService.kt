@@ -963,6 +963,18 @@ class ChatService(
         }
     }
 
+    /**
+     * SoulLink：绑定/解绑世界书存档。
+     * 必须走 updateColumn（内存会话是唯一真源），直接写库会被下一次 flush 覆盖。
+     */
+    suspend fun updateGameSession(conversationId: Uuid, gameSessionId: String?) {
+        updateColumn(
+            conversationId = conversationId,
+            transform = { it.copy(gameSessionId = gameSessionId) },
+            persist = { conversationRepo.updateGameSessionId(conversationId, gameSessionId) },
+        )
+    }
+
     suspend fun updateConversationSystemPrompt(conversationId: Uuid, systemPrompt: String?) {
         updateColumn(
             conversationId = conversationId,
