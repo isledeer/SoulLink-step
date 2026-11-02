@@ -97,7 +97,8 @@ class WorldbookInjectionE2ETest {
             lorebooks = listOf(book),
         )
         val boundSystem = boundMessages.first { it.role == MessageRole.SYSTEM }.toText()
-        Log.i(TAG, "=== system prompt (bound) ===\n$boundSystem\n=== end bound ===")
+        println("=== system prompt (bound) ===\n$boundSystem\n=== end bound ===")
+        Log.i(TAG, "bound system prompt: $boundSystem")
         assertTrue("绑定后 system prompt 应包含世界书规则", boundSystem.contains(rule))
 
         // 2) 解绑状态：不传 book，规则必须消失
@@ -109,7 +110,8 @@ class WorldbookInjectionE2ETest {
             lorebooks = emptyList(),
         )
         val unboundSystem = unboundMessages.first { it.role == MessageRole.SYSTEM }.toText()
-        Log.i(TAG, "=== system prompt (unbound) ===\n$unboundSystem\n=== end unbound ===")
+        println("=== system prompt (unbound) ===\n$unboundSystem\n=== end unbound ===")
+        Log.i(TAG, "unbound system prompt: $unboundSystem")
         assertFalse("解绑后 system prompt 不应再包含世界书规则", unboundSystem.contains(rule))
     }
 
