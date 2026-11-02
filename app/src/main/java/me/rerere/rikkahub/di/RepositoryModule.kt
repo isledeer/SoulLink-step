@@ -7,12 +7,14 @@ import me.rerere.rikkahub.data.repository.ConversationRepository
 import me.rerere.rikkahub.data.repository.FavoriteRepository
 import me.rerere.rikkahub.data.repository.FilesRepository
 import me.rerere.rikkahub.data.repository.FolderRepository
+import me.rerere.rikkahub.data.repository.GameRepository
 import me.rerere.rikkahub.data.repository.GenMediaRepository
 import me.rerere.rikkahub.data.repository.MediaCreationRepository
 import me.rerere.rikkahub.data.repository.MemoryRepository
 import me.rerere.rikkahub.data.repository.TranslationHistoryRepository
 import me.rerere.rikkahub.data.repository.WorkspaceRepository
 import me.rerere.rikkahub.data.skills.SkillManager
+import me.rerere.rikkahub.service.GameLedgerHooks
 import me.rerere.workspace.ProotShellRunner
 import me.rerere.workspace.RootfsInstaller
 import me.rerere.workspace.WorkspaceBindMount
@@ -29,6 +31,11 @@ val repositoryModule = module {
 
     single {
         FolderRepository(get(), get())
+    }
+
+    // SoulLink 游戏层：账本仓库，同时注入到唯一的定稿钩子
+    single {
+        GameRepository(get(), get()).also { GameLedgerHooks.install(it) }
     }
 
     single {
