@@ -655,6 +655,7 @@ class ChatService(
                     session.processingStatus.value = null
                     // 可能被取消了，或者意外结束，兜底保存
                     val finished = session.finishGeneration()
+                    GameLedgerHooks.onTurnFinished(session, replyNodeId, finishReason)
                     // 生成结束：取消 Live Update 通知，后台时发送完成通知
                     appEventBus.emit(
                         AppEvent.ChatGenerationEnded(
