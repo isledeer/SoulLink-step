@@ -1,0 +1,104 @@
+name: SoulLink CI
+
+on:
+  push:
+    branches: [ soullink ]
+  pull_request:
+    branches: [ soullink ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'jetbrains'
+          java-version: '21'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web-ui/pnpm-lock.yaml
+
+      - name: Install web-ui dependencies
+        working-directory: web-ui
+        run: pnpm install --frozen-lockfile
+
+      - name: Gradle cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+
+      # fork 里没有上游的签名密钥/google-services，debug 构建需要一份占位文件
+      - name: Provide dummy google-services.json (debug only)
+        run: |
+          if [ ! -f app/google-services.json ]; then
+            cat > app/google-services.json <<'JSON'
+          {
+            "project_info": {
+              "project_number": "000000000000",
+              "project_id": "soullink-dummy",
+              "storage_bucket": "soullink-dummy.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+                  "android_client_info": { "package_name": "me.rerere.rikkahub" }
+                },
+                "oauth_client": [],
+                "api_key": [ { "current_key": "AIzaSyDUMMY0000000000000000000000000000" } ],
+                "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
+              }
+            ],
+            "configuration_version": "1"
+          }
+          JSON
+            echo "已写入占位 google-services.json"
+          else
+            echo "仓库已有 google-services.json，跳过"
+          fi
+
+      - name: Unit tests (game module)
+        run: |
+          chmod +x gradlew
+          ./gradlew :game:test --stacktrace --console=plain
+
+      - name: Build debug APK
+        run: ./gradlew assembleGithubDebug --stacktrace --console=plain
+
+      - name: Extract Kotlin errors
+        if: always()
+        run: |
+          echo "===== Kotlin 错误行 ====="
+          grep -hE "^e: " -r . --include="*.log" 2>/dev/null || echo "（无）"
+
+      - name: Upload APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: soullink-debug-apk
+          path: app/build/outputs/apk/**/*.apk
+          if-no-files-found: warn
