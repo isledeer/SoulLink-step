@@ -290,3 +290,30 @@ object GameLedgerHooks {
 **唯一的不确定点**：`runTurn` 的 `finally` 在**取消**时也执行（`NonCancellable`），
 所以回调里必须靠 `finishReason`/`TurnResult` 判断"正常完成"，否则会写入半截状态。
 这一点我在 M1 实现时会单独处理。
+
+
+---
+
+## M1 施工记录（施工中）
+
+**仓库**：`isledeer/SoulLink-step` = `rikkahub/rikkahub` 的 fork（含全部 tag，基线 3.1.1）；
+工作分支 `soullink`（从 tag 3.1.1 切出，已设为默认分支）。
+> 注意：GitHub 不允许把公开仓库的 fork 改为私有（API 返回 `Public forks can't be made private`），
+> 本仓库目前是 **public**。旧文档仓库已改名为 `SoulLink-docs`（private）。
+
+**已落地（本分支）**
+
+| 分类 | 文件 |
+|---|---|
+| 纯新增 `:game` | `game/build.gradle.kts`、`GameState.kt`、`GameEvent.kt`、`GameStateOps.kt`、`GameActionParser.kt`、`Worldbook.kt`、2 个测试文件（21 个用例） |
+| 纯新增 app | `data/db/entity/GameEntity.kt`、`data/db/dao/GameDao.kt`、`data/db/migrations/Migration_32_33.kt`、`data/repository/GameRepository.kt`、`service/GameLedgerHooks.kt` |
+| 动上游（共 7 处） | `ConversationEntity` +1 列 / `Conversation` +1 字段 / `ConversationRepository` +2 行映射 / `AppDatabase` 注册 4 实体 + `version 33` / `AppDatabaseFactory` +1 迁移 / `ChatService` +1 行调用 / `RepositoryModule`+`DataSourceModule` 注入 |
+| 构建 | `settings.gradle.kts` 加 `:game`；`libs.versions.toml` 加 `kotlin-jvm` 插件与 `org.json` |
+
+**未完成 / 待办**
+
+- [ ] `./gradlew :game:test` 实际执行（沙箱无 JVM，需 CI）
+- [ ] `./gradlew assembleGithubDebug`
+- [ ] `spotlessApply`（ktlint）
+- [ ] `Migration_32_33_Test`（androidTest，需真机/模拟器）
+- [ ] CI workflow（`.github/workflows/soullink-ci.yml` 已写好，但推送需要 token 具备 `workflow` scope）
