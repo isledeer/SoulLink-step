@@ -105,25 +105,23 @@ class ChatRequestFactory(
         val baseAssistant = settings.getAssistantOf(conversation)
         // SoulLink：有存档时把世界书编译成上游 Lorebook，随 settings/assistant 一起下发
         val soulbook = conversation.gameSessionId?.let { sessionId ->
-            gameRepository.loadedCompiledInjections(sessionId)
-                .takeIf { it.isNotEmpty() }
-                ?.let { compiled ->
-                    Lorebook(
-                        id = stableInjectionId(sessionId, "worldbook"),
-                        name = "SoulLink",
-                        description = "SoulLink 世界书：$sessionId",
-                        entries = compiled.map { it.toRegexInjection(sessionId) },
-                    )
-                }
+            gameRepository.loadedCompiledInjections(sessionId)?.let { compiled ->
+                Lorebook(
+                    id = stableInjectionId(compiled.worldbookId, "worldbook"),
+                    name = "SoulLink",
+                    description = "SoulLink 世界书：${compiled.worldbookId}",
+                    entries = compiled.injections.map { it.toRegexInjection(compiled.worldbookId) },
+                )
+            }
         }
         val effectiveSettings =
             if (soulbook == null) settings else settings.copy(lorebooks = settings.lorebooks + soulbook)
         val assistant =
             if (soulbook == null) baseAssistant else baseAssistant.copy(lorebookIds = baseAssistant.lorebookIds + soulbook.id)
 
-        val model = effectiveSettings.getChatModelOf(conversation)
+        val model = settings.getChatModelOf(conversation)
             ?: throw IllegalStateException("No chat model selected")
-        val provider = model.findProvider(effectiveSettings.providers) ?: error("Provider not found")
+        val provider = model.findProvider(settings.providers) ?: error("Provider not found")
         return ChatTurnContext(
             settings = effectiveSettings,
             assistant = assistant,
@@ -134,7 +132,7 @@ class ChatRequestFactory(
             workspaceCwd = conversation.workspaceCwd,
             memories = if (assistant.enableMemory) memoryRepository.getFiles(assistant.memoryId) else emptyList(),
             tools = chatToolFactory.createTools(
-                settings = effectiveSettings,
+                settings = settings,
                 assistant = assistant,
                 model = model,
                 workspaceCwd = conversation.workspaceCwd,
