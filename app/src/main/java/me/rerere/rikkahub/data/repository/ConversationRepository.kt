@@ -459,6 +459,10 @@ class ConversationRepository(
         conversationDAO.updateTitle(conversationId.toString(), title)
     }
 
+    suspend fun updateGameSessionId(conversationId: Uuid, gameSessionId: String?) {
+        conversationDAO.updateGameSessionId(conversationId.toString(), gameSessionId)
+    }
+
     suspend fun updateCustomSystemPrompt(conversationId: Uuid, customSystemPrompt: String?) {
         conversationDAO.updateCustomSystemPrompt(conversationId.toString(), customSystemPrompt ?: "")
     }
