@@ -86,6 +86,18 @@ val dataSourceModule = module {
     }
 
     single {
+        get<AppDatabase>().gameSessionDao()
+    }
+
+    single {
+        get<AppDatabase>().gameEventDao()
+    }
+
+    single {
+        get<AppDatabase>().worldBookDao()
+    }
+
+    single {
         get<AppDatabase>().memoryDao()
     }
 
