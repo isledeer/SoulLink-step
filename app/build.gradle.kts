@@ -343,6 +343,7 @@ dependencies {
     implementation(project(":material3"))
     implementation(project(":ui"))
     implementation(project(":workspace"))
+    implementation(project(":game"))
     implementation(project(":terminal"))
     implementation(project(":oauth"))
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar", "*.aar"))))
