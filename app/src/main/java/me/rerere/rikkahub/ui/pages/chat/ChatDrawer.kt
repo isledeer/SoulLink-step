@@ -82,6 +82,7 @@ import me.rerere.rikkahub.data.model.Assistant
 import me.rerere.rikkahub.data.model.Conversation
 import me.rerere.rikkahub.data.model.Folder
 import me.rerere.rikkahub.data.repository.ConversationRepository
+import me.rerere.rikkahub.data.repository.GameRepository
 import me.rerere.rikkahub.ui.components.ai.AssistantPicker
 import me.rerere.rikkahub.ui.components.ui.BackupReminderCard
 import me.rerere.rikkahub.ui.components.ui.Greeting
@@ -89,6 +90,7 @@ import me.rerere.rikkahub.ui.components.ui.UIAvatar
 import me.rerere.rikkahub.ui.components.ui.UpdateCard
 import androidx.compose.ui.draw.clip
 import me.rerere.rikkahub.ui.context.LocalToaster
+import me.rerere.rikkahub.service.ChatService
 import me.rerere.rikkahub.ui.context.Navigator
 import me.rerere.ui.toast.ToastType
 import me.rerere.rikkahub.ui.hooks.EditStateContent
@@ -150,6 +152,21 @@ fun ChatDrawerContent(
                 )
             )
         }
+    }
+
+    // 世界书绑定状态（必须放在 ChatDrawerContent 顶层，放 DrawerActions 里会随重组重置）
+    val gameRepository = koinInject<GameRepository>()
+    val chatService = koinInject<ChatService>()
+    val worldbooks = gameRepository.observeWorldbooks()
+        .collectAsStateWithLifecycle(initialValue = emptyList())
+    var boundWorldbookId by remember { mutableStateOf<String?>(null) }
+    var showWorldbookPicker by remember { mutableStateOf(false) }
+    var showWorldbookUnbind by remember { mutableStateOf(false) }
+    val worldbookSheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden)
+
+    LaunchedEffect(current.gameSessionId) {
+        boundWorldbookId = current.gameSessionId
+            ?.let { gameRepository.sessionOf(current)?.worldbookId }
     }
 
     // 移动对话状态
@@ -260,7 +277,12 @@ fun ChatDrawerContent(
                 }
             }
 
-            DrawerActions(navController = navController)
+            DrawerActions(
+                navController = navController,
+                worldbookLabel = worldbooks.firstOrNull { it.id == boundWorldbookId }?.title
+                    ?: stringResource(R.string.soullink_bind_none),
+                onOpenWorldbookPicker = { showWorldbookPicker = true },
+            )
 
             Row(
                 modifier = Modifier
@@ -734,10 +756,117 @@ fun ChatDrawerContent(
             }
         }
     }
+    // 世界书选择器
+    if (showWorldbookPicker) {
+        ModalBottomSheet(
+            onDismissRequest = { showWorldbookPicker = false },
+            sheetState = worldbookSheetState,
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 420.dp)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.soullink_bind_worldbook),
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+
+                if (boundWorldbookId != null) {
+                    Surface(
+                        onClick = {
+                            showWorldbookPicker = false
+                            showWorldbookUnbind = true
+                        },
+                        shape = MaterialTheme.shapes.medium,
+                        color = MaterialTheme.colorScheme.errorContainer,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.soullink_unbind),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                        )
+                    }
+                }
+
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(worldbooks) { book ->
+                        Surface(
+                            onClick = {
+                                scope.launch {
+                                    val doc = com.isledeer.soullink.game.WorldDoc.parse(book.docJson)
+                                    val sessionId = gameRepository.createSession(
+                                        worldbookId = book.id,
+                                        title = book.title,
+                                        initialStateJson = com.isledeer.soullink.game.WorldbookTemplates
+                                            .buildInitialState(doc),
+                                    )
+                                    chatService.updateGameSession(current.id, sessionId)
+                                    boundWorldbookId = book.id
+                                    worldbookSheetState.hide()
+                                    showWorldbookPicker = false
+                                }
+                            },
+                            shape = MaterialTheme.shapes.medium,
+                            color = MaterialTheme.colorScheme.surfaceContainerLow,
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    text = book.title,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                if (book.id == boundWorldbookId) {
+                                    Text("✓", style = MaterialTheme.typography.bodyMedium)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 解绑确认
+    if (showWorldbookUnbind) {
+        AlertDialog(
+            onDismissRequest = { showWorldbookUnbind = false },
+            title = { Text(stringResource(R.string.soullink_unbind_title)) },
+            text = { Text(stringResource(R.string.soullink_unbind_message)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showWorldbookUnbind = false
+                    scope.launch {
+                        chatService.updateGameSession(current.id, null)
+                        boundWorldbookId = null
+                    }
+                }) { Text(stringResource(R.string.soullink_unbind)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showWorldbookUnbind = false }) {
+                    Text(stringResource(R.string.chat_page_cancel))
+                }
+            },
+        )
+    }
+
 }
 
 @Composable
-private fun DrawerActions(navController: Navigator) {
+private fun DrawerActions(
+    navController: Navigator,
+    worldbookLabel: String,
+    onOpenWorldbookPicker: () -> Unit,
+) {
     Column {
         // 历史记录入口，行尾是搜索入口
         DrawerEntry(
@@ -761,6 +890,13 @@ private fun DrawerActions(navController: Navigator) {
             icon = HugeIcons.LanguageCircle,
             text = stringResource(R.string.chat_page_menu_ai_translator),
             onClick = { navController.navigate(Screen.Translator) },
+        )
+
+        // 世界书绑定入口
+        DrawerEntry(
+            icon = HugeIcons.Book03,
+            text = "${stringResource(R.string.soullink_bind_worldbook)} · $worldbookLabel",
+            onClick = onOpenWorldbookPicker,
         )
     }
 }
