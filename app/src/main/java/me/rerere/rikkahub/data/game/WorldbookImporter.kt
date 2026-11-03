@@ -27,7 +27,7 @@ private const val HEADER_BYTES = 8
  * 从文件导入世界书：文件头判类型 → 抽 JSON → `sniffAndImport` → 落库。
  *
  * **不看 MIME**：安卓各家文件管理器对 `.json` 上报的 MIME 五花八门，
- * 所以选择器用 `*/*`，类型只看 [sniffFileKind]。
+ * 所以选择器用通配 MIME，类型只看 [sniffFileKind]。
  */
 suspend fun importWorldbookFromUri(
     context: Context,
