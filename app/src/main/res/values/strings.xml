@@ -1805,4 +1805,6 @@
     <string name="soullink_unbind">Unbind</string>
     <string name="soullink_unbind_title">Unbind world book?</string>
     <string name="soullink_unbind_message">After unbinding, this conversation will no longer inject the world book.</string>
+
+    <string name="soullink_worldbooks_import">Import file (JSON/PNG)</string>
 </resources>
