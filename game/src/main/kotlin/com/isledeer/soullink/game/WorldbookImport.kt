@@ -18,6 +18,32 @@ data class ImportedWorld(
     val entries: List<ImportedEntry> = emptyList(),
 )
 
+/** 文件真实类型：不看 MIME，只看文件头。 */
+enum class FileKind { PNG, ZIP, TEXT, UNKNOWN }
+
+private val PNG_MAGIC = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)
+private val ZIP_MAGIC = byteArrayOf(0x50, 0x4B, 0x03, 0x04)
+
+/**
+ * 只读文件头判类型。安卓各家文件管理器对 `.json` 的 MIME 上报不统一
+ * （application/json / text/plain / octet-stream / null 都见过），
+ * 所以这里彻底不信 MIME。
+ *
+ * - PNG 魔数 `89 50 4E 47 0D 0A 1A 0A`
+ * - ZIP 魔数 `50 4B 03 04`（docx/epub 都是 zip）
+ * - 其余按 TEXT 处理
+ */
+fun sniffFileKind(header: ByteArray): FileKind {
+    if (header.isEmpty()) return FileKind.UNKNOWN
+    if (header.size >= PNG_MAGIC.size && header.copyOfRange(0, PNG_MAGIC.size).contentEquals(PNG_MAGIC)) {
+        return FileKind.PNG
+    }
+    if (header.size >= ZIP_MAGIC.size && header.copyOfRange(0, ZIP_MAGIC.size).contentEquals(ZIP_MAGIC)) {
+        return FileKind.ZIP
+    }
+    return FileKind.TEXT
+}
+
 /** 单条 content 硬上限（字符）。 */
 const val IMPORT_MAX_CONTENT_CHARS = 8000
 
@@ -92,9 +118,17 @@ fun importTavernWorldInfo(root: JSONObject, fallbackTitle: String): ImportedWorl
     }
 
     val title = root.optString("name").ifBlank { fallbackTitle }
-    val premise = parsed.firstOrNull { it.alwaysOn }?.content.orEmpty()
+    val premiseEntry = parsed.firstOrNull { it.alwaysOn }
+    val premise = premiseEntry?.content.orEmpty()
+    // 提升为 premise 的那条从 entries 里移除，避免"规则段 + 条目"重复注入同一段文字
+    val entries = if (premiseEntry == null) {
+        parsed
+    } else {
+        val index = parsed.indexOfFirst { it.content.trim() == premise.trim() }
+        if (index < 0) parsed else parsed.toMutableList().also { it.removeAt(index) }
+    }
     val doc = buildDoc(title = title, premise = premise, setting = "", tone = "", rules = emptyList(), openingScene = "")
-    return ImportedWorld(title = title, docJson = doc, entries = parsed)
+    return ImportedWorld(title = title, docJson = doc, entries = entries)
 }
 
 /** Rikka 风格 Lorebook：entries 是数组 */
