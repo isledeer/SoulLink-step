@@ -157,7 +157,7 @@ fun ChatDrawerContent(
     // 世界书绑定状态（必须放在 ChatDrawerContent 顶层，放 DrawerActions 里会随重组重置）
     val gameRepository = koinInject<GameRepository>()
     val chatService = koinInject<ChatService>()
-    val worldbooks = gameRepository.observeWorldbooks()
+    val worldbooks by gameRepository.observeWorldbooks()
         .collectAsStateWithLifecycle(initialValue = emptyList())
     var boundWorldbookId by remember { mutableStateOf<String?>(null) }
     var showWorldbookPicker by remember { mutableStateOf(false) }
