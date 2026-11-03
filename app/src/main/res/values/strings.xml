@@ -1807,4 +1807,7 @@
     <string name="soullink_unbind_message">After unbinding, this conversation will no longer inject the world book.</string>
 
     <string name="soullink_worldbooks_import">Import file (JSON/PNG)</string>
+
+    <string name="soullink_worldbooks_import_json">Import JSON (Tavern / Rikka / SoulLink)</string>
+    <string name="soullink_worldbooks_import_png">Import PNG (Tavern character card)</string>
 </resources>
