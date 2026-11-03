@@ -24,12 +24,9 @@ class WorldbookImportTest {
     fun `tavern world info is recognised`() {
         val world = sniffAndImport(tavernWorldInfo)!!
         assertEquals("剑宗世界", world.title)
-        assertEquals(2, world.entries.size)
-        assertEquals(listOf("剑", "御剑"), world.entries[0].keys)
-        assertTrue(world.entries[0].alwaysOn)
-        assertEquals(10, world.entries[0].priority)
-        // key（单数）也要能吃
-        assertEquals(listOf("灵根"), world.entries[1].keys)
+        // constant 的那条被提升为 premise，已从 entries 移除
+        assertEquals(1, world.entries.size)
+        assertEquals(listOf("灵根"), world.entries[0].keys)
         // 空内容被丢弃
         assertTrue(world.entries.none { it.content.isBlank() })
         // 第一条 constant 进 premise
@@ -41,6 +38,40 @@ class WorldbookImportTest {
         val world = sniffAndImport("""{"name":"空的","entries":{}}""")!!
         assertEquals("空的", world.title)
         assertTrue(world.entries.isEmpty())
+    }
+
+    @Test
+    fun `premise entry is removed from entries`() {
+        val world = sniffAndImport(tavernWorldInfo)!!
+        val premise = WorldDoc.parse(world.docJson).premise.trim()
+        assertTrue(premise.isNotEmpty())
+        assertTrue(
+            "提升为 premise 的条目不应再出现在 entries 里",
+            world.entries.none { it.content.trim() == premise },
+        )
+    }
+
+    // ---------- 文件头嗅探 ----------
+    @Test
+    fun `sniffFileKind detects png`() {
+        val header = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00)
+        assertEquals(FileKind.PNG, sniffFileKind(header))
+    }
+
+    @Test
+    fun `sniffFileKind detects zip`() {
+        val header = byteArrayOf(0x50, 0x4B, 0x03, 0x04, 0x14, 0x00)
+        assertEquals(FileKind.ZIP, sniffFileKind(header))
+    }
+
+    @Test
+    fun `sniffFileKind treats json as text`() {
+        assertEquals(FileKind.TEXT, sniffFileKind("""{"a":1}""".toByteArray()))
+    }
+
+    @Test
+    fun `sniffFileKind treats empty header as unknown`() {
+        assertEquals(FileKind.UNKNOWN, sniffFileKind(ByteArray(0)))
     }
 
     // ---------- 酒馆角色卡 v2 ----------
