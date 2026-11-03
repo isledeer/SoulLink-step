@@ -76,6 +76,12 @@ fun ExtensionsPage() {
                         supportingContent = { Text(stringResource(R.string.extensions_page_agent_skills_desc)) },
                     )
                     item(
+                        onClick = { navController.navigate(Screen.Worldbooks) },
+                        leadingContent = { CardGroupIcon(HugeIcons.Book03, containerColor = containerColor, contentColor = contentColor) },
+                        headlineContent = { Text(stringResource(R.string.soullink_worldbooks_title)) },
+                        supportingContent = { Text(stringResource(R.string.soullink_worldbooks_desc)) },
+                    )
+                    item(
                         onClick = { navController.navigate(Screen.Workspaces) },
                         leadingContent = { CardGroupIcon(HugeIcons.Folder01, containerColor = containerColor, contentColor = contentColor) },
                         headlineContent = { Text(stringResource(R.string.extensions_page_workspace)) },
