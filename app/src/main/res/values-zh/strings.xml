@@ -1807,4 +1807,6 @@ mDNS 地址：使用 .local 主机名，同一网络中的其他设备可通过�
     <string name="soullink_unbind">解绑</string>
     <string name="soullink_unbind_title">解绑世界书？</string>
     <string name="soullink_unbind_message">解绑后当前会话不再注入世界书。</string>
+
+    <string name="soullink_worldbooks_import">导入文件（JSON/PNG）</string>
 </resources>
