@@ -1786,4 +1786,25 @@ mDNS 地址：使用 .local 主机名，同一网络中的其他设备可通过�
   <string name="setting_model_page_memory_model">记忆整理模型</string>
   <string name="setting_model_page_memory_model_desc">用于在后台将对话整理为长期记忆的模型；未设置时使用快速模型</string>
   <string name="setting_model_page_memory_model_follow_fast">跟随快速模型</string>
+
+    <!-- SoulLink 世界书 -->
+    <string name="soullink_worldbooks_title">世界书</string>
+    <string name="soullink_worldbooks_desc">会被注入对话的规则与设定</string>
+    <string name="soullink_worldbooks_section">世界书</string>
+    <string name="soullink_worldbooks_empty">还没有世界书，点 + 新建一本。</string>
+    <string name="soullink_worldbooks_new">新建世界书</string>
+    <string name="soullink_worldbook_title_hint">标题</string>
+    <string name="soullink_worldbook_premise">前提</string>
+    <string name="soullink_worldbook_setting">设定</string>
+    <string name="soullink_worldbook_rules">规则（每行一条）</string>
+    <string name="soullink_worldbook_rules_hint">每一行会成为一条规则，注入 system prompt</string>
+    <string name="soullink_action_create">创建</string>
+    <string name="soullink_action_cancel">取消</string>
+    <string name="soullink_action_save">保存</string>
+    <string name="soullink_action_saved">已保存</string>
+    <string name="soullink_bind_worldbook">世界书</string>
+    <string name="soullink_bind_none">未绑定</string>
+    <string name="soullink_unbind">解绑</string>
+    <string name="soullink_unbind_title">解绑世界书？</string>
+    <string name="soullink_unbind_message">解绑后当前会话不再注入世界书。</string>
 </resources>
