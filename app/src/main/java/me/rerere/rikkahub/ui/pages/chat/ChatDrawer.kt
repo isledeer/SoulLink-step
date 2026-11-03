@@ -779,8 +779,11 @@ fun ChatDrawerContent(
                 if (boundWorldbookId != null) {
                     Surface(
                         onClick = {
-                            showWorldbookPicker = false
-                            showWorldbookUnbind = true
+                            // 先等收起动画跑完再开确认框，否则会被立刻重组吃掉
+                            scope.launch { worldbookSheetState.hide() }.invokeOnCompletion {
+                                showWorldbookPicker = false
+                                showWorldbookUnbind = true
+                            }
                         },
                         shape = MaterialTheme.shapes.medium,
                         color = MaterialTheme.colorScheme.errorContainer,
@@ -798,18 +801,29 @@ fun ChatDrawerContent(
                     items(worldbooks) { book ->
                         Surface(
                             onClick = {
-                                scope.launch {
-                                    val doc = com.isledeer.soullink.game.WorldDoc.parse(book.docJson)
-                                    val sessionId = gameRepository.createSession(
-                                        worldbookId = book.id,
-                                        title = book.title,
-                                        initialStateJson = com.isledeer.soullink.game.WorldbookTemplates
-                                            .buildInitialState(doc),
-                                    )
-                                    chatService.updateGameSession(current.id, sessionId)
-                                    boundWorldbookId = book.id
-                                    worldbookSheetState.hide()
-                                    showWorldbookPicker = false
+                                if (book.id == boundWorldbookId) {
+                                    // 已经绑的就是这本：只收面板，绝不新建存档
+                                    scope.launch { worldbookSheetState.hide() }.invokeOnCompletion {
+                                        showWorldbookPicker = false
+                                    }
+                                } else {
+                                    scope.launch {
+                                        val doc = com.isledeer.soullink.game.WorldDoc.parse(book.docJson)
+                                        val sessionId = gameRepository.createSession(
+                                            worldbookId = book.id,
+                                            title = book.title,
+                                            initialStateJson = com.isledeer.soullink.game.WorldbookTemplates
+                                                .buildInitialState(doc),
+                                        )
+                                        chatService.updateGameSession(current.id, sessionId)
+                                        boundWorldbookId = book.id
+                                        // 换书时旧 game_sessions 及其 game_events 有意保留（不删）：
+                                        // 它们是历史存档，不是垃圾。若将来要清理，只能由用户显式删除存档，
+                                        // 不能把"会话当前未引用"当作可回收条件，否则切回旧书时账本会丢。
+                                        scope.launch { worldbookSheetState.hide() }.invokeOnCompletion {
+                                            showWorldbookPicker = false
+                                        }
+                                    }
                                 }
                             },
                             shape = MaterialTheme.shapes.medium,
