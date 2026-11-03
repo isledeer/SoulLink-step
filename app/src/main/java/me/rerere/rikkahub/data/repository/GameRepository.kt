@@ -6,7 +6,11 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import me.rerere.rikkahub.data.db.dao.GameEventDao
 import me.rerere.rikkahub.data.db.dao.GameSessionDao
+import androidx.room.withTransaction
+import me.rerere.rikkahub.data.db.AppDatabase
 import me.rerere.rikkahub.data.db.dao.WorldBookDao
+import me.rerere.rikkahub.data.db.entity.WorldEntryEntity
+import org.json.JSONArray
 import me.rerere.rikkahub.data.db.entity.GameEventEntity
 import me.rerere.rikkahub.data.db.entity.GameSessionEntity
 import me.rerere.rikkahub.data.db.entity.WorldBookEntity
@@ -20,7 +24,9 @@ import com.isledeer.soullink.game.CompiledInjection
 import com.isledeer.soullink.game.EntryRow
 import com.isledeer.soullink.game.WorldDoc
 import com.isledeer.soullink.game.WorldbookTemplates
+import com.isledeer.soullink.game.ImportedWorld
 import com.isledeer.soullink.game.compileWorldbook
+import com.isledeer.soullink.game.normalizeImported
 import com.isledeer.soullink.game.updateDoc
 
 /**
@@ -35,9 +41,43 @@ class GameRepository(
     private val sessionDao: GameSessionDao,
     private val eventDao: GameEventDao,
     private val worldBookDao: WorldBookDao,
+    private val database: AppDatabase,
 ) {
 
     private val mutex = Mutex()
+
+    /**
+     * 导入一本世界书：一个事务里写 worldbooks + world_entries。
+     * id 全部重新生成，不复用导入文件里的 id；标题重复不合并。
+     */
+    suspend fun insertImported(world: ImportedWorld): String = database.withTransaction {
+        val bookId = UUID.randomUUID().toString()
+        val now = System.currentTimeMillis()
+        worldBookDao.upsert(
+            WorldBookEntity(
+                id = bookId,
+                title = world.title.ifBlank { "导入的世界书" },
+                template = "imported",
+                docJson = world.docJson,
+                createdAt = now,
+                updatedAt = now,
+            ),
+        )
+        val (entries, _) = normalizeImported(world.entries)
+        entries.forEach { entry ->
+            worldBookDao.upsertEntry(
+                WorldEntryEntity(
+                    id = UUID.randomUUID().toString(),
+                    worldbookId = bookId,
+                    keysJson = JSONArray(entry.keys).toString(),
+                    content = entry.content,
+                    alwaysOn = entry.alwaysOn,
+                    priority = entry.priority,
+                ),
+            )
+        }
+        bookId
+    }
 
     /** 为某本世界书新建一个存档，返回 sessionId。 */
     suspend fun createSession(
