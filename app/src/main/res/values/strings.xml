@@ -1784,4 +1784,25 @@
   <string name="setting_model_page_memory_model">Memory Consolidation Model</string>
   <string name="setting_model_page_memory_model_desc">Model used to organize conversations into long-term memory in the background; uses the fast model when not set</string>
   <string name="setting_model_page_memory_model_follow_fast">Same as fast model</string>
+
+    <!-- SoulLink 世界书 -->
+    <string name="soullink_worldbooks_title">World Books</string>
+    <string name="soullink_worldbooks_desc">Rules and lore that get injected into the conversation</string>
+    <string name="soullink_worldbooks_section">World Books</string>
+    <string name="soullink_worldbooks_empty">No world books yet. Tap + to create one.</string>
+    <string name="soullink_worldbooks_new">New world book</string>
+    <string name="soullink_worldbook_title_hint">Title</string>
+    <string name="soullink_worldbook_premise">Premise</string>
+    <string name="soullink_worldbook_setting">Setting</string>
+    <string name="soullink_worldbook_rules">Rules (one per line)</string>
+    <string name="soullink_worldbook_rules_hint">Each line becomes a rule injected into the system prompt</string>
+    <string name="soullink_action_create">Create</string>
+    <string name="soullink_action_cancel">Cancel</string>
+    <string name="soullink_action_save">Save</string>
+    <string name="soullink_action_saved">Saved</string>
+    <string name="soullink_bind_worldbook">World book</string>
+    <string name="soullink_bind_none">Not bound</string>
+    <string name="soullink_unbind">Unbind</string>
+    <string name="soullink_unbind_title">Unbind world book?</string>
+    <string name="soullink_unbind_message">After unbinding, this conversation will no longer inject the world book.</string>
 </resources>
