@@ -1,6 +1,7 @@
 package me.rerere.rikkahub.data.repository
 
 import java.util.UUID
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import me.rerere.rikkahub.data.db.dao.GameEventDao
@@ -8,6 +9,7 @@ import me.rerere.rikkahub.data.db.dao.GameSessionDao
 import me.rerere.rikkahub.data.db.dao.WorldBookDao
 import me.rerere.rikkahub.data.db.entity.GameEventEntity
 import me.rerere.rikkahub.data.db.entity.GameSessionEntity
+import me.rerere.rikkahub.data.db.entity.WorldBookEntity
 import me.rerere.rikkahub.data.model.Conversation
 import com.isledeer.soullink.game.GameAction
 import com.isledeer.soullink.game.GameActionEvents
@@ -17,7 +19,9 @@ import com.isledeer.soullink.game.GameStateOps
 import com.isledeer.soullink.game.CompiledInjection
 import com.isledeer.soullink.game.EntryRow
 import com.isledeer.soullink.game.WorldDoc
+import com.isledeer.soullink.game.WorldbookTemplates
 import com.isledeer.soullink.game.compileWorldbook
+import com.isledeer.soullink.game.updateDoc
 
 /**
  * 账本仓库：追加事件、按当前路径派生状态。
@@ -34,6 +38,71 @@ class GameRepository(
 ) {
 
     private val mutex = Mutex()
+
+    /** 为某本世界书新建一个存档，返回 sessionId。 */
+    suspend fun createSession(
+        worldbookId: String,
+        title: String,
+        initialStateJson: String,
+    ): String {
+        val id = UUID.randomUUID().toString()
+        val now = System.currentTimeMillis()
+        sessionDao.upsert(
+            GameSessionEntity(
+                id = id,
+                title = title,
+                worldbookId = worldbookId,
+                characterId = null,
+                initialStateJson = initialStateJson,
+                createdAt = now,
+                updatedAt = now,
+            ),
+        )
+        return id
+    }
+
+    // ---- 世界书（M2-B）----
+
+    fun observeWorldbooks(): Flow<List<WorldBookEntity>> = worldBookDao.observeAll()
+
+    suspend fun worldbook(id: String): WorldBookEntity? = worldBookDao.findById(id)
+
+    /** 新建一本空世界书，返回 id。 */
+    suspend fun createWorldbook(title: String): String {
+        val id = UUID.randomUUID().toString()
+        val now = System.currentTimeMillis()
+        val name = title.trim().ifBlank { "未命名世界" }
+        worldBookDao.upsert(
+            WorldBookEntity(
+                id = id,
+                title = name,
+                template = "blank",
+                docJson = WorldbookTemplates.blank(template = "blank", title = name),
+                createdAt = now,
+                updatedAt = now,
+            ),
+        )
+        return id
+    }
+
+    /** 保存四个基础字段；docJson 的其余结构不动。 */
+    suspend fun saveWorldDoc(
+        id: String,
+        title: String,
+        premise: String,
+        setting: String,
+        rules: List<String>,
+    ) {
+        val book = worldBookDao.findById(id) ?: return
+        val name = title.trim().ifBlank { "未命名世界" }
+        worldBookDao.upsert(
+            book.copy(
+                title = name,
+                docJson = updateDoc(book.docJson, name, premise, setting, rules),
+                updatedAt = System.currentTimeMillis(),
+            ),
+        )
+    }
 
     /** 编译结果 + 它来自哪本世界书（注入项的稳定 id 要用真正的 worldbookId）。 */
     data class CompiledWorldbook(
