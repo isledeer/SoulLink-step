@@ -43,6 +43,7 @@ import me.rerere.rikkahub.ui.context.LocalNavController
 import me.rerere.rikkahub.ui.theme.CustomColors
 import me.rerere.rikkahub.utils.plus
 import kotlinx.coroutines.launch
+import me.rerere.rikkahub.data.game.WorldbookImportMode
 import me.rerere.rikkahub.data.game.WorldbookImportResult
 import me.rerere.rikkahub.data.game.importWorldbookFromUri
 import me.rerere.rikkahub.data.repository.GameRepository
@@ -67,6 +68,7 @@ fun WorldbookPage() {
     val sheetState = rememberModalBottomSheetState()
 
     var showAddSheet by remember { mutableStateOf(false) }
+    var pendingMode by remember { mutableStateOf(WorldbookImportMode.JSON) }
     var showCreate by remember { mutableStateOf(false) }
     var newTitle by remember { mutableStateOf("") }
 
@@ -86,7 +88,7 @@ fun WorldbookPage() {
         ActivityResultContracts.OpenDocument()
     ) { uri ->
         if (uri != null) {
-            scope.launch { finishImport(importWorldbookFromUri(context, uri, repository)) }
+            scope.launch { finishImport(importWorldbookFromUri(context, uri, repository, pendingMode)) }
         }
     }
 
@@ -156,13 +158,27 @@ fun WorldbookPage() {
                         .padding(vertical = 14.dp),
                 )
                 Text(
-                    text = stringResource(R.string.soullink_worldbooks_import),
+                    text = stringResource(R.string.soullink_worldbooks_import_json),
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable {
                             showAddSheet = false
-                            importLauncher.launch(arrayOf("application/json", "image/png"))
+                            pendingMode = WorldbookImportMode.JSON
+                            // 不限制 MIME：各家文件管理器对 .json 的上报不统一
+                            importLauncher.launch(arrayOf("*/*"))
+                        }
+                        .padding(vertical = 14.dp),
+                )
+                Text(
+                    text = stringResource(R.string.soullink_worldbooks_import_png),
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            showAddSheet = false
+                            pendingMode = WorldbookImportMode.PNG
+                            importLauncher.launch(arrayOf("*/*"))
                         }
                         .padding(vertical = 14.dp),
                 )
