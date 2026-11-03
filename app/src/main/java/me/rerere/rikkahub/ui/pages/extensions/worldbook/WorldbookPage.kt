@@ -1,6 +1,17 @@
 package me.rerere.rikkahub.ui.pages.extensions.worldbook
 
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
@@ -31,7 +42,12 @@ import me.rerere.rikkahub.ui.components.ui.CardGroup
 import me.rerere.rikkahub.ui.context.LocalNavController
 import me.rerere.rikkahub.ui.theme.CustomColors
 import me.rerere.rikkahub.utils.plus
+import kotlinx.coroutines.launch
+import me.rerere.rikkahub.data.game.WorldbookImportResult
+import me.rerere.rikkahub.data.game.importWorldbookFromUri
+import me.rerere.rikkahub.data.repository.GameRepository
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 
 /**
  * 世界书管理（全局，不带 conversationId）。
@@ -45,8 +61,34 @@ fun WorldbookPage() {
     val books by vm.books.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val repository = koinInject<GameRepository>()
+    val sheetState = rememberModalBottomSheetState()
+
+    var showAddSheet by remember { mutableStateOf(false) }
     var showCreate by remember { mutableStateOf(false) }
     var newTitle by remember { mutableStateOf("") }
+
+    fun finishImport(result: WorldbookImportResult) {
+        when (result) {
+            is WorldbookImportResult.Success -> {
+                Toast.makeText(context, "已导入 ${result.entryCount} 条", Toast.LENGTH_SHORT).show()
+                navController.navigate(Screen.WorldbookDetail(result.bookId))
+            }
+
+            is WorldbookImportResult.Failed ->
+                Toast.makeText(context, result.message, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            scope.launch { finishImport(importWorldbookFromUri(context, uri, repository)) }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -58,10 +100,7 @@ fun WorldbookPage() {
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = {
-                newTitle = ""
-                showCreate = true
-            }) {
+            FloatingActionButton(onClick = { showAddSheet = true }) {
                 Text("+", style = MaterialTheme.typography.headlineSmall)
             }
         },
@@ -94,6 +133,39 @@ fun WorldbookPage() {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    if (showAddSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showAddSheet = false },
+            sheetState = sheetState,
+        ) {
+            Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                Text(
+                    text = stringResource(R.string.soullink_worldbooks_new),
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            showAddSheet = false
+                            newTitle = ""
+                            showCreate = true
+                        }
+                        .padding(vertical = 14.dp),
+                )
+                Text(
+                    text = stringResource(R.string.soullink_worldbooks_import),
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            showAddSheet = false
+                            importLauncher.launch(arrayOf("application/json", "image/png"))
+                        }
+                        .padding(vertical = 14.dp),
+                )
             }
         }
     }
