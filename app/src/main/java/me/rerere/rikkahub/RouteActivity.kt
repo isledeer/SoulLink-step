@@ -99,6 +99,8 @@ import me.rerere.rikkahub.ui.pages.extensions.skills.SkillDetailPage
 import me.rerere.rikkahub.ui.pages.memory.MemoryFilePage
 import me.rerere.rikkahub.ui.pages.extensions.skills.SkillsPage
 import me.rerere.rikkahub.ui.pages.extensions.workspace.WorkspacePage
+import me.rerere.rikkahub.ui.pages.extensions.worldbook.WorldbookDetailPage
+import me.rerere.rikkahub.ui.pages.extensions.worldbook.WorldbookPage
 import me.rerere.rikkahub.ui.pages.extensions.workspace.WorkspaceDetailPage
 import me.rerere.rikkahub.ui.pages.extensions.workspace.WorkspaceFileEditorPage
 import me.rerere.rikkahub.ui.pages.extensions.workspace.WorkspaceSshEditorPage
@@ -565,6 +567,14 @@ class RouteActivity : ComponentActivity() {
                                 WorkspacePage()
                             }
 
+                            entry<Screen.Worldbooks> {
+                                WorldbookPage()
+                            }
+
+                            entry<Screen.WorldbookDetail> { key ->
+                                WorldbookDetailPage(key.id)
+                            }
+
                             entry<Screen.WorkspaceDetail> { key ->
                                 WorkspaceDetailPage(key.id)
                             }
@@ -803,6 +813,12 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data object Workspaces : Screen
+
+    @Serializable
+    data object Worldbooks : Screen
+
+    @Serializable
+    data class WorldbookDetail(val id: String) : Screen
 
     @Serializable
     data class WorkspaceDetail(val id: String) : Screen
