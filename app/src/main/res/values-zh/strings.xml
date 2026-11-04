@@ -1812,4 +1812,19 @@ mDNS 地址：使用 .local 主机名，同一网络中的其他设备可通过�
 
     <string name="soullink_worldbooks_import_json">导入 JSON（酒馆 / Rikka / SoulLink，自动识别）</string>
     <string name="soullink_worldbooks_import_png">导入 PNG（酒馆角色卡）</string>
+
+    <string name="soullink_draft_banner">未保存的草稿 — 点「创建世界书」才写入</string>
+    <string name="soullink_entries_count">共 %1$d 条</string>
+    <string name="soullink_entry_always_on">常驻</string>
+    <string name="soullink_entry_priority">优先级 %1$d</string>
+    <string name="soullink_entry_delete_title">删除这条条目？</string>
+    <string name="soullink_entry_delete_message">只会删除这一条，不影响整本。</string>
+    <string name="soullink_action_delete">删除</string>
+    <string name="soullink_leave_title">放弃草稿？</string>
+    <string name="soullink_leave_message">还有未保存的修改。</string>
+    <string name="soullink_leave_save">保存</string>
+    <string name="soullink_leave_discard">放弃</string>
+    <string name="soullink_book_delete_title">删除《%1$s》？</string>
+    <string name="soullink_book_delete_message">这本书的所有条目也会一起删除，无法恢复。</string>
+    <string name="soullink_book_delete_in_use">有 %1$d 个会话正在使用它，删除后这些会话会自动变成未绑定。</string>
 </resources>
