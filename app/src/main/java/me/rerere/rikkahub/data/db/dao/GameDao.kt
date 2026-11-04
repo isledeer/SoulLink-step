@@ -22,6 +22,9 @@ interface GameSessionDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(session: GameSessionEntity)
 
+    @Query("SELECT COUNT(*) FROM game_sessions WHERE worldbookId = :worldbookId")
+    suspend fun countByWorldbook(worldbookId: String): Int
+
     @Query("DELETE FROM game_sessions WHERE id = :id")
     suspend fun delete(id: String)
 }
