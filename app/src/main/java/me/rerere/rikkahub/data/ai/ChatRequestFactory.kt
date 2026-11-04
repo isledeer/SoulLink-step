@@ -19,6 +19,7 @@ import me.rerere.ai.ui.limitContext
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.data.ai.prompts.buildMemoryPrompt
 import me.rerere.rikkahub.data.ai.tools.ChatToolFactory
+import me.rerere.rikkahub.data.ai.tools.buildGameStateTool
 import me.rerere.rikkahub.data.ai.transformers.Base64ImageToLocalFileTransformer
 import me.rerere.rikkahub.data.ai.transformers.DocumentAsPromptTransformer
 import me.rerere.rikkahub.data.ai.transformers.InputMessageTransformer
@@ -108,6 +109,9 @@ class ChatRequestFactory(
             ?.let { buildWorldbookLorebook(it.worldbookId, it.injections) }
         val effectiveSettings = settings.attachWorldbook(soulbook)
         val assistant = baseAssistant.attachWorldbook(soulbook)
+        val gameTool = conversation.gameSessionId?.let { sid ->
+            buildGameStateTool(sid, conversation.id.toString(), gameRepository.foldState(sid, gameRepository.activeMessageIds(conversation)))
+        }
 
         val model = settings.getChatModelOf(conversation)
             ?: throw IllegalStateException("No chat model selected")
@@ -126,7 +130,7 @@ class ChatRequestFactory(
                 assistant = assistant,
                 model = model,
                 workspaceCwd = conversation.workspaceCwd,
-            ),
+            ) + listOfNotNull(gameTool),
         )
     }
 
