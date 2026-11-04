@@ -4,16 +4,17 @@ import android.content.Context
 import android.net.Uri
 import android.util.Base64
 import com.isledeer.soullink.game.FileKind
+import com.isledeer.soullink.game.ImportedWorld
 import com.isledeer.soullink.game.isEffectivelyEmpty
 import com.isledeer.soullink.game.sniffAndImport
 import com.isledeer.soullink.game.sniffFileKind
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import me.rerere.rikkahub.data.repository.GameRepository
 import me.rerere.rikkahub.utils.ImageUtils
 
 sealed interface WorldbookImportResult {
-    data class Success(val bookId: String, val entryCount: Int) : WorldbookImportResult
+    /** 只解析，不落库；由调用方作为草稿持有，用户点保存才写入。 */
+    data class Success(val world: ImportedWorld) : WorldbookImportResult
     data class Failed(val message: String) : WorldbookImportResult
 }
 
@@ -32,7 +33,6 @@ private const val HEADER_BYTES = 8
 suspend fun importWorldbookFromUri(
     context: Context,
     uri: Uri,
-    repository: GameRepository,
     mode: WorldbookImportMode,
 ): WorldbookImportResult {
     val resolver = context.contentResolver
@@ -88,8 +88,5 @@ suspend fun importWorldbookFromUri(
         return WorldbookImportResult.Failed("文件里没有可用内容")
     }
 
-    return runCatching {
-        val id = repository.insertImported(world)
-        WorldbookImportResult.Success(id, world.entries.size)
-    }.getOrElse { WorldbookImportResult.Failed("导入失败：${it.message ?: "未知错误"}") }
+    return WorldbookImportResult.Success(world)
 }
