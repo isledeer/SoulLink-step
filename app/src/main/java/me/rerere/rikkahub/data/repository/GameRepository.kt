@@ -107,6 +107,53 @@ class GameRepository(
 
     suspend fun worldbook(id: String): WorldBookEntity? = worldBookDao.findById(id)
 
+    suspend fun entriesOf(worldbookId: String): List<WorldEntryEntity> = worldBookDao.entriesOf(worldbookId)
+
+    suspend fun deleteEntry(entryId: String) = worldBookDao.deleteEntry(entryId)
+
+    /** 有多个会话引用这本书时返回数量，用于删除前提示。 */
+    suspend fun countSessionsUsing(worldbookId: String): Int = sessionDao.countByWorldbook(worldbookId)
+
+    /** 删整本：事务里先清条目再删书。正在使用它的会话会自动变成未绑定。 */
+    suspend fun deleteWorldbook(worldbookId: String) = database.withTransaction {
+        worldBookDao.clearEntries(worldbookId)
+        worldBookDao.delete(worldbookId)
+    }
+
+    /** 草稿保存：一次事务写 worldbooks + world_entries（新建与导入共用）。 */
+    suspend fun saveDraft(
+        title: String,
+        docJson: String,
+        entries: List<com.isledeer.soullink.game.ImportedEntry>,
+    ): String = database.withTransaction {
+        val bookId = UUID.randomUUID().toString()
+        val now = System.currentTimeMillis()
+        worldBookDao.upsert(
+            WorldBookEntity(
+                id = bookId,
+                title = title.ifBlank { "未命名世界" },
+                template = "blank",
+                docJson = docJson,
+                createdAt = now,
+                updatedAt = now,
+            ),
+        )
+        val (normalized, _) = normalizeImported(entries)
+        normalized.forEach { entry ->
+            worldBookDao.upsertEntry(
+                WorldEntryEntity(
+                    id = UUID.randomUUID().toString(),
+                    worldbookId = bookId,
+                    keysJson = JSONArray(entry.keys).toString(),
+                    content = entry.content,
+                    alwaysOn = entry.alwaysOn,
+                    priority = entry.priority,
+                ),
+            )
+        }
+        bookId
+    }
+
     /** 新建一本空世界书，返回 id。 */
     suspend fun createWorldbook(title: String): String {
         val id = UUID.randomUUID().toString()
