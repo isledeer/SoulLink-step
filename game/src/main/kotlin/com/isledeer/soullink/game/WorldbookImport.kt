@@ -16,6 +16,8 @@ data class ImportedWorld(
     val title: String,
     val docJson: String,
     val entries: List<ImportedEntry> = emptyList(),
+    /** 有几条条目被提升为世界前提（目前最多 1 条）；用于导入成功的提示文案。 */
+    val promotedToPremise: Int = 0,
 )
 
 /** 文件真实类型：不看 MIME，只看文件头。 */
@@ -97,7 +99,12 @@ fun importTavernCharacter(root: JSONObject, fallbackTitle: String): ImportedWorl
         openingScene = data.optString("first_mes"),
     )
     val entries = parseTavernEntries(data.optJSONObject("character_book")?.opt("entries"))
-    return ImportedWorld(title = title, docJson = doc, entries = entries)
+    return ImportedWorld(
+        title = title,
+        docJson = doc,
+        entries = entries,
+        promotedToPremise = if (premiseEntry != null) 1 else 0,
+    )
 }
 
 /** 酒馆 World Info：entries 是对象，键为数字字符串 */
@@ -248,10 +255,15 @@ fun normalizeImported(entries: List<ImportedEntry>): Pair<List<ImportedEntry>, B
     return (if (truncated) cleaned.take(IMPORT_MAX_ENTRIES) else cleaned) to truncated
 }
 
-/** 整本解析出 0 条且 docJson 全空 → 调用方应拒绝落库。 */
+/**
+ * 整本解析出 0 条且 docJson 无实质内容 → 调用方应拒绝落库。
+ *
+ * 注意：**title 不算内容**。像 `{"name":"空世界","entries":{}}` 这种只有书名、
+ * 没有任何设定与条目的文件，导入进去只是一本空壳，应当拒绝。
+ */
 fun ImportedWorld.isEffectivelyEmpty(): Boolean {
     if (entries.isNotEmpty()) return false
     val doc = WorldDoc.parse(docJson)
-    return doc.title.isBlank() && doc.premise.isBlank() && doc.setting.isBlank() &&
+    return doc.premise.isBlank() && doc.setting.isBlank() &&
         doc.rules.isEmpty() && doc.npcs.isEmpty() && doc.items.isEmpty()
 }
