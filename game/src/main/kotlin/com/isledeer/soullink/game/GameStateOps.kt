@@ -106,6 +106,38 @@ object GameActionEvents {
  */
 object GameStateOps {
 
+    /**
+     * 给模型看的状态摘要。空项整行不显示；全空时只输出「尚无状态」。
+     * 末行固定提醒用工具写状态，避免和 <game> 文本块重复记账。
+     */
+    fun summarize(state: GameState): String {
+        val lines = mutableListOf<String>()
+        if (state.scene.isNotBlank()) lines += "场景：${state.scene}"
+        state.worldTime?.takeIf { it.isNotBlank() }?.let { lines += "时间：$it" }
+        if (state.relations.isNotEmpty()) {
+            lines += "好感：" + state.relations.entries.joinToString(" / ") { "${it.key} ${it.value}" }
+        }
+        if (state.inventory.isNotEmpty()) {
+            lines += "背包：" + state.inventory.values.joinToString("、") { "${it.name} ×${it.quantity}" }
+        }
+        if (state.flags.isNotEmpty()) {
+            lines += "标记：" + state.flags.entries.joinToString(" / ") { "${it.key}=${it.value}" }
+        }
+        if (state.stats.isNotEmpty()) {
+            lines += "属性：" + state.stats.entries.joinToString(" / ") { "${it.key} ${it.value}" }
+        }
+
+        return buildString {
+            appendLine("【当前游戏状态】")
+            if (lines.isEmpty()) {
+                appendLine("尚无状态")
+            } else {
+                lines.forEach { appendLine(it) }
+            }
+            append("用 update_game_state 记录本回合发生的变化；不要再用 <game> 文本块写动作。")
+        }
+    }
+
     private const val RELATION_MIN = 0
     private const val RELATION_MAX = 100
 
