@@ -99,12 +99,7 @@ fun importTavernCharacter(root: JSONObject, fallbackTitle: String): ImportedWorl
         openingScene = data.optString("first_mes"),
     )
     val entries = parseTavernEntries(data.optJSONObject("character_book")?.opt("entries"))
-    return ImportedWorld(
-        title = title,
-        docJson = doc,
-        entries = entries,
-        promotedToPremise = if (premiseEntry != null) 1 else 0,
-    )
+    return ImportedWorld(title = title, docJson = doc, entries = entries)
 }
 
 /** 酒馆 World Info：entries 是对象，键为数字字符串 */
@@ -135,7 +130,12 @@ fun importTavernWorldInfo(root: JSONObject, fallbackTitle: String): ImportedWorl
         if (index < 0) parsed else parsed.toMutableList().also { it.removeAt(index) }
     }
     val doc = buildDoc(title = title, premise = premise, setting = "", tone = "", rules = emptyList(), openingScene = "")
-    return ImportedWorld(title = title, docJson = doc, entries = entries)
+    return ImportedWorld(
+        title = title,
+        docJson = doc,
+        entries = entries,
+        promotedToPremise = if (premiseEntry != null) 1 else 0,
+    )
 }
 
 /** Rikka 风格 Lorebook：entries 是数组 */
