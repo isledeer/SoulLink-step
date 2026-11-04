@@ -1810,4 +1810,19 @@
 
     <string name="soullink_worldbooks_import_json">Import JSON (Tavern / Rikka / SoulLink)</string>
     <string name="soullink_worldbooks_import_png">Import PNG (Tavern character card)</string>
+
+    <string name="soullink_draft_banner">Unsaved draft — tap Create to save</string>
+    <string name="soullink_entries_count">%1$d entries</string>
+    <string name="soullink_entry_always_on">Always on</string>
+    <string name="soullink_entry_priority">priority %1$d</string>
+    <string name="soullink_entry_delete_title">Delete this entry?</string>
+    <string name="soullink_entry_delete_message">Only this entry will be removed.</string>
+    <string name="soullink_action_delete">Delete</string>
+    <string name="soullink_leave_title">Discard draft?</string>
+    <string name="soullink_leave_message">You have unsaved changes.</string>
+    <string name="soullink_leave_save">Save</string>
+    <string name="soullink_leave_discard">Discard</string>
+    <string name="soullink_book_delete_title">Delete \"%1$s\"?</string>
+    <string name="soullink_book_delete_message">All entries in this book will be deleted too. This cannot be undone.</string>
+    <string name="soullink_book_delete_in_use">%1$d conversation(s) are using it; they will become unbound.</string>
 </resources>
