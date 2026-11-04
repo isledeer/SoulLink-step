@@ -186,6 +186,13 @@ class WorldbookImportTest {
     }
 
     @Test
+    fun `title alone does not count as content`() {
+        val world = sniffAndImport("""{"name":"空世界","entries":{}}""")!!
+        assertEquals("空世界", world.title)
+        assertTrue("只有书名、没有设定与条目时应判空", world.isEffectivelyEmpty())
+    }
+
+    @Test
     fun `empty document is rejected as unusable`() {
         val world = ImportedWorld(title = "", docJson = updateDoc(null, "", "", "", emptyList()))
         assertTrue(world.isEffectivelyEmpty())
