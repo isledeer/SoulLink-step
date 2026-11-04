@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.layout.PaddingValues
@@ -20,6 +21,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -35,6 +38,8 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import me.rerere.hugeicons.HugeIcons
+import me.rerere.hugeicons.stroke.Delete02
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.Screen
 import me.rerere.rikkahub.ui.components.nav.BackButton
@@ -69,14 +74,29 @@ fun WorldbookPage() {
 
     var showAddSheet by remember { mutableStateOf(false) }
     var pendingMode by remember { mutableStateOf(WorldbookImportMode.JSON) }
+    var bookToDelete by remember { mutableStateOf<me.rerere.rikkahub.data.db.entity.WorldBookEntity?>(null) }
+    var deleteUsage by remember { mutableStateOf(0) }
+
+    LaunchedEffect(bookToDelete) {
+        deleteUsage = bookToDelete?.let { vm.countSessionsUsing(it.id) } ?: 0
+    }
     var showCreate by remember { mutableStateOf(false) }
     var newTitle by remember { mutableStateOf("") }
 
     fun finishImport(result: WorldbookImportResult) {
         when (result) {
             is WorldbookImportResult.Success -> {
-                Toast.makeText(context, "已导入 ${result.entryCount} 条", Toast.LENGTH_SHORT).show()
-                navController.navigate(Screen.WorldbookDetail(result.bookId))
+                val world = result.world
+                val count = world.entries.size
+                val text = if (world.promotedToPremise > 0) {
+                    "已导入 $count 条条目，其中 ${world.promotedToPremise} 条转为世界前提"
+                } else {
+                    "已导入 $count 条条目"
+                }
+                Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
+                // 只登记草稿，不落库
+                val draftId = vm.registerImported(world)
+                navController.navigate(Screen.WorldbookDetail(draftId))
             }
 
             is WorldbookImportResult.Failed ->
@@ -88,7 +108,7 @@ fun WorldbookPage() {
         ActivityResultContracts.OpenDocument()
     ) { uri ->
         if (uri != null) {
-            scope.launch { finishImport(importWorldbookFromUri(context, uri, repository, pendingMode)) }
+            scope.launch { finishImport(importWorldbookFromUri(context, uri, pendingMode)) }
         }
     }
 
@@ -131,12 +151,47 @@ fun WorldbookPage() {
                                 onClick = { navController.navigate(Screen.WorldbookDetail(book.id)) },
                                 headlineContent = { Text(book.title) },
                                 supportingContent = { Text(book.template) },
+                                trailingContent = {
+                                    IconButton(onClick = { bookToDelete = book }) {
+                                        Icon(HugeIcons.Delete02, contentDescription = null)
+                                    }
+                                },
                             )
                         }
                     }
                 }
             }
         }
+    }
+
+    bookToDelete?.let { book ->
+        AlertDialog(
+            onDismissRequest = { bookToDelete = null },
+            title = { Text(stringResource(R.string.soullink_book_delete_title, book.title)) },
+            text = {
+                Text(
+                    buildString {
+                        append(stringResource(R.string.soullink_book_delete_message))
+                        if (deleteUsage > 0) {
+                            append("\n")
+                            append(stringResource(R.string.soullink_book_delete_in_use, deleteUsage))
+                        }
+                    }
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val target = book
+                    bookToDelete = null
+                    vm.deleteBook(target.id) {}
+                }) { Text(stringResource(R.string.soullink_action_delete)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { bookToDelete = null }) {
+                    Text(stringResource(R.string.soullink_action_cancel))
+                }
+            },
+        )
     }
 
     if (showAddSheet) {
@@ -202,7 +257,8 @@ fun WorldbookPage() {
                 TextButton(onClick = {
                     val title = newTitle
                     showCreate = false
-                    vm.create(title) { id -> navController.navigate(Screen.WorldbookDetail(id)) }
+                    val draftId = vm.newDraft(title)
+                    navController.navigate(Screen.WorldbookDetail(draftId))
                 }) {
                     Text(stringResource(R.string.soullink_action_create))
                 }
