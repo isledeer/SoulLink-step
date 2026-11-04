@@ -226,6 +226,12 @@ class GameRepository(
         return sessionDao.findById(sessionId)
     }
 
+    /** 工具快照用：按当前分支折叠出状态。 */
+    suspend fun foldState(sessionId: String, activeMessageIds: Set<String>): GameState {
+        val session = sessionDao.findById(sessionId) ?: return GameState.EMPTY
+        return derive(session, activeMessageIds)
+    }
+
     /** 当前会话的「选中路径」上的消息 id —— 重新生成/分支后自动变化。 */
     fun activeMessageIds(conversation: Conversation): Set<String> =
         conversation.messageNodes
