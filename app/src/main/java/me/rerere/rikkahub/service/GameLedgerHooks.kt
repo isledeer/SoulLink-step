@@ -1,9 +1,12 @@
 package me.rerere.rikkahub.service
 
 import android.util.Log
+import com.isledeer.soullink.game.GameAction
 import com.isledeer.soullink.game.GameActionParser
 import kotlin.uuid.Uuid
 import me.rerere.ai.agent.AgentFinishReason
+import me.rerere.ai.ui.UIMessagePart
+import org.json.JSONObject
 import me.rerere.rikkahub.data.repository.GameRepository
 
 /**
@@ -39,14 +42,32 @@ object GameLedgerHooks {
             val message = node.messages.getOrNull(node.selectIndex) ?: return
             val gameSession = repo.sessionOf(conversation) ?: return
 
-            val action = GameActionParser.extract(message.toText()).second ?: return
+            // 工具通道优先：有 update_game_state 调用就用它，绝不再解析 <game> 文本块，否则同一动作记账两次
+            val toolCall = message.parts
+                .filterIsInstance<UIMessagePart.Tool>()
+                .firstOrNull { it.toolName == "update_game_state" }
+
+            val actions: List<GameAction>
+            val source: String
+            if (toolCall != null) {
+                val parsed = runCatching {
+                    GameAction.fromJson(JSONObject(toolCall.input.toString()))
+                }.getOrNull() ?: return
+                actions = listOf(parsed)
+                source = "TOOL"
+            } else {
+                val parsed = GameActionParser.extract(message.toText()).second ?: return
+                actions = listOf(parsed)
+                source = "BLOCK"
+            }
+
             repo.replaceActions(
                 session = gameSession,
                 conversationId = conversation.id.toString(),
                 messageId = message.id.toString(),
                 nodeId = node.id.toString(),
-                actions = listOf(action),
-                source = "BLOCK",
+                actions = actions,
+                source = source,
                 activeMessageIds = repo.activeMessageIds(conversation),
             )
         } catch (t: Throwable) {
