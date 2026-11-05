@@ -1825,4 +1825,10 @@
     <string name="soullink_book_delete_title">Delete \"%1$s\"?</string>
     <string name="soullink_book_delete_message">All entries in this book will be deleted too. This cannot be undone.</string>
     <string name="soullink_book_delete_in_use">%1$d conversation(s) are using it; they will become unbound.</string>
+
+    <string name="soullink_html_too_large">HTML block is too large to render (over 200 KB)</string>
+    <string name="soullink_html_view_source">Source</string>
+    <string name="soullink_html_fullscreen">Full screen</string>
+    <string name="soullink_html_render_failed">Could not render this card; showing source instead</string>
+    <string name="soullink_html_enable">Render HTML cards</string>
 </resources>
