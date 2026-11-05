@@ -1827,4 +1827,10 @@ mDNS 地址：使用 .local 主机名，同一网络中的其他设备可通过�
     <string name="soullink_book_delete_title">删除《%1$s》？</string>
     <string name="soullink_book_delete_message">这本书的所有条目也会一起删除，无法恢复。</string>
     <string name="soullink_book_delete_in_use">有 %1$d 个会话正在使用它，删除后这些会话会自动变成未绑定。</string>
+
+    <string name="soullink_html_too_large">内容过大，已改为显示源码（上限 200 KB）</string>
+    <string name="soullink_html_view_source">源码</string>
+    <string name="soullink_html_fullscreen">全屏</string>
+    <string name="soullink_html_render_failed">这张卡片渲染失败，已改为显示源码</string>
+    <string name="soullink_html_enable">渲染 HTML 卡片</string>
 </resources>
